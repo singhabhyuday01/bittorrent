@@ -1,20 +1,17 @@
 package bittorrent.bencode.coders;
 
-import bittorrent.bencode.coders.model.DecodedResult;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public abstract class Coder {
 
-    InputStream inputStream;
-    protected DecodedResult result = DecodedResult.builder().result("").build();
+    public abstract Object decode(InputStream inputStream);
 
-    public Coder(InputStream inputStream) {
-        this.inputStream = inputStream;
-    }
+//    public abstract void printResult();
 
-    public abstract DecodedResult decode();
+    public abstract String encode(Object object, OutputStream outputStream);
 
-    public abstract void printResult();
-//    String encode(Object object);
+    public abstract void print(Object object);
+
 }

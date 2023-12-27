@@ -1,13 +1,17 @@
 package bittorrent.bencode.coders;
 
 import bittorrent.bencode.Decode;
-import bittorrent.bencode.coders.model.DecodedResult;
+import bittorrent.bencode.Encode;
+import bittorrent.bencode.Print;
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static bittorrent.bencode.util.InputStreamReaderUtil.peek;
 import static bittorrent.bencode.util.InputStreamReaderUtil.poll;
@@ -15,56 +19,72 @@ import static bittorrent.bencode.util.InputStreamReaderUtil.poll;
 public class DictionaryCoder extends Coder {
     private static final Gson gson = new Gson();
 
-    public DictionaryCoder(InputStream inputStream) {
-        super(inputStream);
-    }
-
     @Override
-    public DecodedResult decode() {
+    public Object decode(InputStream inputStream) {
 
         poll(inputStream); // to read first 'd'
 
-        Map<String, DecodedResult> resultMap = new HashMap<>();
+        Map<String, Object> resultMap = new TreeMap<>();
 
-        result = DecodedResult.builder().result(resultMap).coder(this).build();
+//        result = DecodedResult.builder().result(resultMap).coder(this).build();
 
         boolean isKey = true;
         String key = "";
 
+        Decode decode = new Decode(inputStream);
+
         while (peek(inputStream) != 'e') {
-
-            DecodedResult codedResult = new Decode(inputStream).decode();
-
+            Object o = decode.decode();
             if (isKey) {
-                key = (String) codedResult.getResult();
+                key = new String((byte[]) o, StandardCharsets.ISO_8859_1);
                 isKey = false;
             } else {
-                resultMap.put(key, codedResult);
+                resultMap.put(key, o);
                 isKey = true;
             }
 
         }
         poll(inputStream); // to read last 'e'
 
-        return result;
+        return resultMap;
     }
 
     @Override
-    public void printResult() {
-        System.out.print("{");
-        Map<String, DecodedResult> resultMap = (Map<String, DecodedResult>) result.getResult();
-
-        int i = 0;
-
-        for (Map.Entry<String, DecodedResult> me : resultMap.entrySet()) {
-            if (i++ > 0) {
-                System.out.print(",");
+    public String encode(Object object, OutputStream outputStream) {
+        if (object instanceof Map<?, ?> map) {
+            try {
+                outputStream.write("d".getBytes());
+                TreeMap<?, ?> resultMap = new TreeMap<>(map);
+                StringCoder stringCoder = new StringCoder();
+                StringBuilder stringBuilder = new StringBuilder();
+                for (Map.Entry<?, ?> me : resultMap.entrySet()) {
+                    stringBuilder.append(stringCoder.encode(me.getKey(), outputStream));
+                    stringBuilder.append(new Encode(outputStream).encode(me.getValue()));
+                }
+                outputStream.write("e".getBytes());
+                return "d" + stringBuilder + "e";
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
             }
-            System.out.print(gson.toJson(me.getKey()) + ":");
-            me.getValue().getCoder().printResult();
         }
+        throw new UnsupportedOperationException("Unsupported type " + object.getClass());
+    }
 
-        System.out.print("}");
-
+    @Override
+    public void print(Object object) {
+        if (object instanceof Map<?, ?> resultMap) {
+            System.out.print("{");
+            int i = 0;
+            for (Map.Entry<?, ?> me : resultMap.entrySet()) {
+                if (i++ > 0) {
+                    System.out.print(",");
+                }
+                System.out.print(gson.toJson(me.getKey()) + ":");
+                new Print().print(me.getValue());
+            }
+            System.out.print("}");
+            return;
+        }
+        throw new UnsupportedOperationException("Unsupported type " + object.getClass());
     }
 }

@@ -1,13 +1,11 @@
 package bittorrent.bencode;
 
 import bittorrent.bencode.coders.DictionaryCoder;
-import bittorrent.bencode.coders.IntegerCoder;
+import bittorrent.bencode.coders.NumericalCoder;
 import bittorrent.bencode.coders.ListCoder;
 import bittorrent.bencode.coders.StringCoder;
-import bittorrent.bencode.coders.model.DecodedResult;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import static bittorrent.bencode.util.InputStreamReaderUtil.peek;
@@ -20,29 +18,33 @@ public class Decode {
         inputStream = new ByteArrayInputStream(encodedString.getBytes());
     }
 
+    public Decode(byte[] bytes) {
+        inputStream = new ByteArrayInputStream(bytes);
+    }
+
     public Decode(InputStream inputStream) {
         this.inputStream = inputStream;
     }
 
 
-    public DecodedResult decode() {
+    public Object decode() {
         int first = peek(inputStream);
 
         if (Character.isDigit(first)) {
             // string decoding
-            return new StringCoder(inputStream).decode();
+            return new StringCoder().decode(inputStream);
         }
         if (first == 'i') {
             // integer decoding
-            return new IntegerCoder(inputStream).decode();
+            return new NumericalCoder().decode(inputStream);
         }
         if (first == 'l') {
             // list decoding
-            return new ListCoder(inputStream).decode();
+            return new ListCoder().decode(inputStream);
         }
         if (first == 'd') {
             // dictionary decoding
-            return new DictionaryCoder(inputStream).decode();
+            return new DictionaryCoder().decode(inputStream);
         }
         throw new RuntimeException("Unsupported format");
     }

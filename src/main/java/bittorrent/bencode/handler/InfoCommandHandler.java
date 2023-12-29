@@ -1,10 +1,8 @@
 package bittorrent.bencode.handler;
 
 import bittorrent.bencode.Decode;
-import bittorrent.bencode.Encode;
-import bittorrent.bencode.util.HashUtil;
+import bittorrent.bencode.util.TorrentUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -51,9 +49,7 @@ public class InfoCommandHandler implements CommandHandler {
     }
 
     private void handleInfoHash(Map<String, Object> infoMap) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        String infoEncoded = new Encode(baos).encode(infoMap);
-        System.out.println("Info Hash: " + HashUtil.shaHash(infoEncoded, baos));
+        System.out.println("Info Hash: " + TorrentUtil.getInfoHashHex(infoMap));
     }
 
     private void handleInfoPieces(Map<String, Object> infoMap) {

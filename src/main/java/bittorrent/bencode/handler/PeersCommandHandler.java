@@ -16,26 +16,11 @@ public class PeersCommandHandler implements CommandHandler {
     public void handle(String[] args) {
         String filename = args[1];
 
-        File torrentFile = new File(filename);
-
-        if (!torrentFile.exists()) {
-            throw new RuntimeException("Torrent file does not exist");
-        }
-
-        try {
-            FileInputStream fis = new FileInputStream(torrentFile);
-            byte[] fileContent = fis.readAllBytes();
-            fis.close();
-
-            Object o = new Decode(fileContent).decode();
-            handleResult(o);
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+        handleResult(TorrentUtil.decodeTorrentFile(filename));
 
     }
 
-    private void handleResult(Object decodedObj) throws UnsupportedEncodingException {
+    private void handleResult(Object decodedObj) {
         if (decodedObj instanceof Map<?, ?> resultMap) {
             Map<String, Object> infoMap = (Map<String, Object>) resultMap.get("info");
 

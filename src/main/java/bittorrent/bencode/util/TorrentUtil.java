@@ -2,11 +2,16 @@ package bittorrent.bencode.util;
 
 import bittorrent.bencode.Decode;
 import bittorrent.bencode.Encode;
+import bittorrent.bencode.handler.model.TorrentStateModel;
+import okhttp3.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class TorrentUtil {
@@ -39,4 +44,72 @@ public class TorrentUtil {
             throw new RuntimeException(ioe);
         }
     }
+
+    public static TorrentStateModel getTorrentInfo(Map<String, Object> resultMap) {
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> infoMap = (Map<String, Object>) resultMap.get("info");
+
+        String host = new String((byte[]) resultMap.get("announce"), StandardCharsets.ISO_8859_1);
+
+        byte[] infoHashRaw = TorrentUtil.getInfoHashRaw(infoMap);
+        String urlEncodedHash = URLEncoder.encode(new String(infoHashRaw, StandardCharsets.ISO_8859_1), StandardCharsets.ISO_8859_1);
+
+        TorrentStateModel torrentStateModel = TorrentStateModel
+                .builder()
+                .torrentMap(resultMap)
+                .infoHashRaw(infoHashRaw)
+                .infoMap(infoMap)
+                .trackerUrl(host)
+                .urlEncodedHash(urlEncodedHash)
+                .build();
+
+        Request request = new Request.Builder()
+                .get()
+                .url(
+                        HttpUrl.parse(host)
+                                .newBuilder()
+                                .addEncodedQueryParameter("info_hash", urlEncodedHash)
+                                .addQueryParameter("peer_id", "00112233445566778899")
+                                .addQueryParameter("port", "6881")
+                                .addQueryParameter("uploaded", "0")
+                                .addQueryParameter("downloaded", "0")
+                                .addQueryParameter("left", String.valueOf(infoMap.get("length")))
+                                .addQueryParameter("compact", "1")
+                                .build()
+                )
+                .build();
+
+        try {
+            OkHttpClient client = new OkHttpClient();
+            Response response = client.newCall(request).execute();
+            ResponseBody body = response.body();
+            InputStream inputStream = new ByteArrayInputStream(body.byteStream().readAllBytes());
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> decodedMap = (Map<String, Object>) new Decode(inputStream).decode();
+
+            byte[] peers = (byte[]) decodedMap.get("peers");
+
+            List<InetSocketAddress> socketAddresses = new LinkedList<>();
+
+            for (int i = 0; i < peers.length; i += 6) {
+                byte[] peer = new byte[4];
+                byte[] portBytes = new byte[2];
+                System.arraycopy(peers, i, peer, 0, 4);
+                System.arraycopy(peers, i + 4, portBytes, 0, 2);
+                int port = ((portBytes[0] & 0xFF) << 8) | (portBytes[1] & 0xFF);
+                InetAddress ia = InetAddress.getByAddress(peer);
+                InetSocketAddress isa = new InetSocketAddress(ia, port);
+                socketAddresses.add(isa);
+            }
+
+            torrentStateModel.setPeers(socketAddresses);
+            return torrentStateModel;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 }

@@ -1,7 +1,4 @@
-import bittorrent.bencode.handler.DecodeCommandHandler;
-import bittorrent.bencode.handler.HandshakeCommandHandler;
-import bittorrent.bencode.handler.InfoCommandHandler;
-import bittorrent.bencode.handler.PeersCommandHandler;
+import bittorrent.bencode.handler.*;
 // import com.dampcake.bittorrent.bencode.Bencode; - available if you need it!
 
 public class Main {
@@ -18,6 +15,8 @@ public class Main {
             new PeersCommandHandler().handle(args);
         } else if ("handshake".equals(command)) {
             new HandshakeCommandHandler().handle(args);
+        } else if ("download_piece".equals(command)) {
+            new DownloadPieceCommandHandler().handle(args);
         } else {
             System.out.println("Unknown command: " + command);
         }

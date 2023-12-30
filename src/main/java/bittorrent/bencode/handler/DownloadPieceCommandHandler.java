@@ -1,6 +1,6 @@
 package bittorrent.bencode.handler;
 
-import bittorrent.bencode.handler.model.DownloadTorrent;
+import bittorrent.bencode.handler.model.DownloadTorrentPiece;
 import bittorrent.bencode.handler.model.TorrentStateModel;
 import bittorrent.bencode.util.TorrentUtil;
 
@@ -24,18 +24,24 @@ public class DownloadPieceCommandHandler implements CommandHandler {
 
         InetSocketAddress peer = torrentStateModel.getPeers().get(0);
 
-//        torrentStateModel.getPeers().forEach(peer -> {
-//        System.out.println("Connecting to peer: " + peer.getAddress().getHostAddress() + ":" + peer.getPort());
-        DownloadTorrent handshakeState = new DownloadTorrent(peer.getAddress().getHostAddress(), String.valueOf(peer.getPort()), torrentStateModel);
-        handshakeState.performHandshake();
-//            System.out.println("Peer ID: " + handshakeState.getPeerId());
+        downloadAndSavePieceFromPeer(peer, pieceNum, torrentStateModel, outputFileName);
+    }
 
-        handshakeState.getAndSavePiece(outputFileName, pieceNum);
+    public void downloadAndSavePieceFromPeer(InetSocketAddress peer, int pieceNum, TorrentStateModel torrentStateModel, String outputFileName) {
+        DownloadTorrentPiece downloadTorrent = new DownloadTorrentPiece(peer.getAddress().getHostAddress(), String.valueOf(peer.getPort()), torrentStateModel, pieceNum);
+        downloadTorrent.performHandshake();
 
+        downloadTorrent.getAndSavePiece(outputFileName);
+    }
 
-        handshakeState.close();
-//        });
+    public byte[] downloadPieceFromPeer(InetSocketAddress peer, int pieceNum, TorrentStateModel torrentStateModel) {
+        DownloadTorrentPiece downloadTorrent = new DownloadTorrentPiece(peer.getAddress().getHostAddress(), String.valueOf(peer.getPort()), torrentStateModel, pieceNum);
+        downloadTorrent.performHandshake();
 
+        byte[] pieceBytes = downloadTorrent.getPiece();
+
+        downloadTorrent.close();
+        return pieceBytes;
     }
 
 

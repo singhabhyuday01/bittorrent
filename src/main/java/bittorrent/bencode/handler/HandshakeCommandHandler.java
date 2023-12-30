@@ -1,6 +1,6 @@
 package bittorrent.bencode.handler;
 
-import bittorrent.bencode.handler.model.DownloadTorrent;
+import bittorrent.bencode.handler.model.DownloadTorrentPiece;
 import bittorrent.bencode.handler.model.TorrentStateModel;
 import bittorrent.bencode.util.TorrentUtil;
 
@@ -24,7 +24,7 @@ public class HandshakeCommandHandler implements CommandHandler {
 
         String[] peerAddressParts = peerAddress.split(":");
 
-        DownloadTorrent handshakeState = new DownloadTorrent(peerAddressParts[0], peerAddressParts[1], TorrentStateModel.builder().infoHashRaw(infoHashRaw).build());
+        DownloadTorrentPiece handshakeState = new DownloadTorrentPiece(peerAddressParts[0], peerAddressParts[1], TorrentStateModel.builder().infoHashRaw(infoHashRaw).build(), 0);
         handshakeState.performHandshake();
         System.out.println("Peer ID: " + handshakeState.getPeerId());
         handshakeState.close();

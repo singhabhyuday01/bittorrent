@@ -17,6 +17,8 @@ public class Main {
             new HandshakeCommandHandler().handle(args);
         } else if ("download_piece".equals(command)) {
             new DownloadPieceCommandHandler().handle(args);
+        } else if ("download".equals(command)) {
+            new DownloadCommandHandler().handle(args);
         } else {
             System.out.println("Unknown command: " + command);
         }
